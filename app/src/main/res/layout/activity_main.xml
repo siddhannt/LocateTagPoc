@@ -1,0 +1,51 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/TagText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tag ID:"
+        android:textSize="18sp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"/>
+
+    <EditText
+        android:id="@+id/tagIdInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/TagText"
+        android:layout_margin="16dp"
+        android:hint="Enter Tag ID" />
+
+    <Button
+        android:id="@+id/connectButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tagIdInput"
+        android:layout_centerHorizontal="true"
+        android:text="Connect" />
+
+    <Button
+        android:id="@+id/locateTagButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Locate Tag"
+        android:layout_below="@id/connectButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"/>
+
+    <TextView
+        android:id="@+id/locationResult"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Location Result:"
+        android:textSize="18sp"
+        android:layout_below="@id/locateTagButton"
+        android:layout_marginTop="20dp"
+        android:layout_centerHorizontal="true"/>
+</RelativeLayout>
