@@ -158,6 +158,7 @@ class MainActivity : AppCompatActivity() {
                 reader.Events.setInventoryStopEvent(true)
                 reader.Events.setInventoryStartEvent(true)
                 reader.Events.setPowerEvent(true)
+                reader.Events.addEventsListener(eventHandler)
 
                 // Set antenna configurations
                 val antennas = reader.Config.Antennas.availableAntennas
