@@ -1,16 +1,19 @@
 package com.example.locatetagpoc
 
 import android.annotation.SuppressLint
-import android.media.MediaCas.EventListener
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.zebra.rfid.api3.DYNAMIC_POWER_OPTIMIZATION
-import com.zebra.rfid.api3.ENUM_TRIGGER_MODE
 import com.zebra.rfid.api3.InvalidUsageException
 import com.zebra.rfid.api3.OperationFailureException
 import com.zebra.rfid.api3.RFIDReader
@@ -38,17 +41,21 @@ class MainActivity : AppCompatActivity() {
     private var readers: Readers?=null
     private lateinit var availableRFIDReaderList: ArrayList<ReaderDevice>
     private lateinit var readerDevice: ReaderDevice
-    private lateinit var reader: RFIDReader
+    private  var reader: RFIDReader? = null
     private val TAG = "DEMO"
 
     private lateinit var tagIdInput: EditText
     private lateinit var locateTagButton: Button
     private lateinit var connectButton: Button
     private lateinit var locationResult: TextView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var dropdownSpinner: Spinner
+
     private var eventHandler: EventHandler?= null
     var tagsToReadCount: Int = 1000
     var isSingleReadMode: Boolean = true
     private lateinit var sdkHandler:SDKHandler
+    var tagidStore = ""
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,7 +69,11 @@ class MainActivity : AppCompatActivity() {
         locateTagButton = findViewById(R.id.locateTagButton)
         locationResult = findViewById(R.id.locationResult)
         connectButton = findViewById(R.id.connectButton)
+        //progressBar = findViewById(R.id.proximityProgressBar)
         eventHandler = EventHandler()
+        dropdownSpinner = findViewById(R.id.dropdownSpinner)
+
+
 
         connectButton.setOnClickListener {
             var notificationMask = 0
@@ -83,13 +94,41 @@ class MainActivity : AppCompatActivity() {
         // Set up button click listener
         locateTagButton.setOnClickListener {
             val tagId = tagIdInput.text.toString()
+            tagidStore = tagId
             if (tagId.isNotEmpty()) {
                 locateTag(tagId)
             } else {
                 Toast.makeText(this, "Please enter a Tag ID", Toast.LENGTH_SHORT).show()
             }
         }
+
+        val items = arrayOf("low", "optimal", "high")
+
+        setupDropdownSpinner(items, dropdownSpinner)
     }
+
+    private fun setupDropdownSpinner(items: Array<String>, dropdownSpinner: Spinner) {
+        // Create ArrayAdapter for Spinner
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
+        dropdownSpinner.adapter = adapter
+        // Spinner selection listener
+        dropdownSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val selectedItem = parent.getItemAtPosition(position).toString()
+                if (reader != null) {
+                    reader?.Actions?.TagLocationing?.Stop()
+                    updateAntennaPower(selectedItem)
+                    locateTag(tagidStore)
+                }
+                Toast.makeText(this@MainActivity, "Selected: $selectedItem", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // Handle the case when nothing is selected
+            }
+        }
+    }
+
 
 
     private fun connectRFIDReader() {
@@ -105,10 +144,10 @@ class MainActivity : AppCompatActivity() {
                 if (availableRFIDReaderList.isNotEmpty()) {
                     readerDevice = availableRFIDReaderList[0]
                     reader = readerDevice.rfidReader
-                    if (!reader.isConnected) {
-                        reader.connect()
+                    if (reader?.isConnected == false) {
+                        reader?.connect()
                         Log.d(TAG, "Connecting to reader...")
-                        if (reader.isConnected) {
+                        if (reader?.isConnected == true) {
                             configureReader()
                             Log.d(TAG, "Connected to RFID Reader")
 
@@ -134,6 +173,33 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun updateAntennaPower(selectedItem: String) {
+        // Check if the RFID reader is initialized
+        Thread {
+            if (reader?.isConnected == false) {
+                Toast.makeText(this, "RFID Reader not connected", Toast.LENGTH_SHORT).show()
+                return@Thread
+            }
+            val powerIndex = when (selectedItem) {
+                "low" -> 100
+                "optimal" -> 200
+                "high" -> 300
+                else -> 300 // Default to high if anything goes wrong
+            }
+
+            // Set the antenna power
+            val antennas = reader?.Config?.Antennas?.availableAntennas
+        if (antennas != null) {
+            for (index in antennas) {
+                val antennaRfConfig = reader?.Config?.Antennas?.getAntennaRfConfig(index.toInt())
+                antennaRfConfig?.transmitPowerIndex = powerIndex // Set power index
+                reader?.Config?.Antennas?.setAntennaRfConfig(index.toInt(), antennaRfConfig)
+                Log.d(TAG, "Set power index: $powerIndex for antenna $index")
+            }
+        }
+        }
+    }
+
     private fun setDPO(bEnable: Boolean) {
         Log.d(TAG, "setDPO $bEnable")
         try {
@@ -147,29 +213,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun configureReader() {
-        if (reader.isConnected) {
+        if (reader?.isConnected == true) {
             try {
                setDPO(false)
                 // Set Event Handlers
-                reader.Events.setHandheldEvent(true) // Assuming handheldEvent is enabled
-                reader.Events.setTagReadEvent(true)
-                reader.Events.setReaderDisconnectEvent(true)
-                reader.Events.setBatteryEvent(true)
-                reader.Events.setInventoryStopEvent(true)
-                reader.Events.setInventoryStartEvent(true)
-                reader.Events.setPowerEvent(true)
-                reader.Events.addEventsListener(eventHandler)
+                reader?.Events?.setHandheldEvent(true) // Assuming handheldEvent is enabled
+                reader?.Events?.setTagReadEvent(true)
+                reader?.Events?.setReaderDisconnectEvent(true)
+                reader?.Events?.setBatteryEvent(true)
+                reader?.Events?.setInventoryStopEvent(true)
+                reader?.Events?.setInventoryStartEvent(true)
+                reader?.Events?.setPowerEvent(true)
+                reader?.Events?.addEventsListener(eventHandler)
 
                 // Set antenna configurations
-                val antennas = reader.Config.Antennas.availableAntennas
-                reader.Config.setAccessOperationWaitTimeout(10000) // 10-second timeout
+                val antennas = reader?.Config?.Antennas?.availableAntennas
+                reader?.Config?.setAccessOperationWaitTimeout(10000) // 10-second timeout
 
                 if (antennas != null) {
                     Log.d(TAG, "Number of available antennas: ${antennas.size}")
                     for (index in antennas) {
-                        val antennaRfConfig = reader.Config.Antennas.getAntennaRfConfig(index.toInt())
+                        val antennaRfConfig = reader?.Config?.Antennas?.getAntennaRfConfig(index.toInt())
 //                        antennaRfConfig?.transmitPowerIndex = PowerConstant.readPower
-                        reader.Config.Antennas.setAntennaRfConfig(index.toInt(), antennaRfConfig)
+                        reader?.Config?.Antennas?.setAntennaRfConfig(index.toInt(), antennaRfConfig)
                         Log.d(TAG, "Antenna Power Index: ${antennaRfConfig?.transmitPowerIndex} for antenna $index")
                     }
                 }
@@ -180,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                     atttype = "B"
                     attvalue = "0"
                 }
-                reader.Config.setAttribute(setAttributeInfo)
+                reader?.Config?.setAttribute(setAttributeInfo)
 
                 // Configure tag storage settings
                 val tagStorageSettings = TagStorageSettings().apply {
@@ -191,7 +257,7 @@ class MainActivity : AppCompatActivity() {
                         TAG_FIELD.PEAK_RSSI
                     )
                 }
-                reader.Config.tagStorageSettings = tagStorageSettings
+                reader?.Config?.tagStorageSettings = tagStorageSettings
 
                 // Configure triggers
                 val triggerInfo = TriggerInfo().apply {
@@ -206,8 +272,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                reader.Config.startTrigger = triggerInfo.StartTrigger
-                reader.Config.stopTrigger = triggerInfo.StopTrigger
+                reader?.Config?.startTrigger = triggerInfo.StartTrigger
+                reader?.Config?.stopTrigger = triggerInfo.StopTrigger
 
                 Log.d(TAG, "Reader configuration complete.")
             } catch (e: InvalidUsageException) {
@@ -255,29 +321,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun locateTag(tagId: String) {
         // Check if the RFID reader is initialized
-        if (!::reader.isInitialized) {
+        if (reader?.isConnected == false) {
             Toast.makeText(this, "RFID Reader not connected", Toast.LENGTH_SHORT).show()
             return
         }
 
-        try {
-            // Start locating the tag
-            reader.Actions.TagLocationing.Perform(tagId, null, null)
+            try {
+                // Start locating the tag
+                reader?.Actions?.TagLocationing?.Perform(tagId, null, null)
 
-            // Wait for a few seconds to allow the reader to locate the tag
-            Thread.sleep(5000)
-            Log.d(TAG, "Location:")
-            // Stop locating the tag
-          // reader.Actions.TagLocationing.Stop()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error locating tag: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+                // Wait for a few seconds to allow the reader to locate the tag
+                Thread.sleep(5000)
+                Log.d(TAG, "Location:")
+                // Stop locating the tag
+                // reader.Actions.TagLocationing.Stop()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Error locating tag: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+
     }
 
     inner class EventHandler : RfidEventsListener , IDcsSdkApiDelegate  {
         override fun eventReadNotify(e: RfidReadEvents) {
-            val myTags = reader.Actions.getReadTags(100)
+            val myTags = reader?.Actions?.getReadTags(100)
             if (myTags != null) {
                 for (tag in myTags) {
                     Log.d(TAG, "Tag ID: ${tag.tagID}")
@@ -286,6 +353,16 @@ class MainActivity : AppCompatActivity() {
                         Log.d(TAG, "Tag locationing distance: $distance")
                         runOnUiThread {
                             locationResult.text = "Distance: $distance%"
+                            // Update progress bar to reflect the distance (0 to 100%)
+
+                            val proximityProgressBar = findViewById<ProgressBar>(R.id.proximityProgressBar)
+                            val distanceText = findViewById<TextView>(R.id.distanceText)
+
+                            proximityProgressBar.progress =
+                                distance.toInt()  // Update progress (0 to 100)
+                            distanceText.text = "$distance%"
+
+
                             Log.d(TAG, " Distance: $distance")
                         }
                     }
@@ -341,9 +418,9 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try {
-            if (::reader.isInitialized) {
-                reader.Events.removeEventsListener(eventHandler)
-                reader.disconnect()
+            if (reader?.isConnected == true) {
+                reader?.Events?.removeEventsListener(eventHandler)
+                reader?.disconnect()
                 Toast.makeText(applicationContext, "Disconnecting reader", Toast.LENGTH_LONG).show()
                 readers?.Dispose()
             }

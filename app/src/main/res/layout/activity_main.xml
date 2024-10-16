@@ -22,11 +22,20 @@
         android:layout_margin="16dp"
         android:hint="Enter Tag ID" />
 
+    <Spinner
+        android:id="@+id/dropdownSpinner"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tagIdInput"
+        android:layout_margin="16dp"
+        android:layout_centerHorizontal="true"
+        android:spinnerMode="dropdown" />
+
     <Button
         android:id="@+id/connectButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/tagIdInput"
+        android:layout_below="@id/dropdownSpinner"
         android:layout_centerHorizontal="true"
         android:text="Connect" />
 
@@ -47,5 +56,42 @@
         android:textSize="18sp"
         android:layout_below="@id/locateTagButton"
         android:layout_marginTop="20dp"
+        android:visibility="gone"
         android:layout_centerHorizontal="true"/>
+
+    <!-- Container for vertical progress bar and distance text -->
+    <FrameLayout
+        android:id="@+id/progressContainer"
+        android:layout_width="200dp"
+        android:layout_height="250dp"
+        android:layout_below="@id/locateTagButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="50dp"
+        android:background="#FFFFFF"
+         android:padding="4dp">
+
+
+    <ProgressBar
+        android:id="@+id/proximityProgressBar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:progressDrawable="@drawable/custom_progressbar"
+        android:indeterminateOnly="false"
+        android:progress="0"
+        android:max="100"
+        android:rotation="270"
+        android:layout_gravity="bottom" />
+
+    <!-- Distance text inside the progress bar -->
+    <TextView
+        android:id="@+id/distanceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="0%"
+        android:textSize="18sp"
+        android:textColor="#000000"
+        android:gravity="center" />
+
+</FrameLayout>
 </RelativeLayout>
